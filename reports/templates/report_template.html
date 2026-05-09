@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OSINT Forensic Report - {{ username }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            color: #222;
+            background: #fff;
+        }
+        h1 {
+            background: #1a1a2e;
+            color: white;
+            padding: 20px;
+            border-radius: 6px;
+        }
+        h2 {
+            color: #1a1a2e;
+            border-bottom: 2px solid #1a1a2e;
+            padding-bottom: 6px;
+            margin-top: 40px;
+        }
+        h3 {
+            color: #16213e;
+            margin-top: 20px;
+        }
+        .meta {
+            background: #f0f4f8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+        }
+        .meta p { margin: 4px 0; }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .found    { background: #d4edda; color: #155724; }
+        .notfound { background: #f8d7da; color: #721c24; }
+        .warning  { background: #fff3cd; color: #856404; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        th {
+            background: #1a1a2e;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        a { color: #0066cc; word-break: break-all; }
+        .section-box {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .footer {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .profile-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        .profile-card p { margin: 5px 0; font-size: 13px; }
+        .highlight { color: #e74c3c; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <h1>OSINT Forensic Investigation Report</h1>
+    <div class="meta">
+        <p><strong>Target Username:</strong> {{ username }}</p>
+        <p><strong>Generated At:</strong> {{ generated_at }}</p>
+        <p><strong>Investigator:</strong> Automated OSINT Framework</p>
+        <p><strong>Report ID:</strong> {{ report_id }}</p>
+    </div>
+
+    <!-- SECTION 1: PLATFORM PRESENCE -->
+    <h2>1. Platform Presence</h2>
+    <table>
+        <tr>
+            <th>Platform</th>
+            <th>Profile URL</th>
+            <th>Status</th>
+        </tr>
+        {% for platform, data in username_search.items() %}
+        <tr>
+            <td>{{ platform }}</td>
+            <td><a href="{{ data.url }}">{{ data.url }}</a></td>
+            <td>
+                {% if data.found %}
+                    <span class="badge found">FOUND</span>
+                {% else %}
+                    <span class="badge notfound">NOT FOUND</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- SECTION 2: PROFILE DATA -->
+    <h2>2. Extracted Profile Data</h2>
+    <div class="profile-grid">
+        {% for platform, profile in profiles.items() %}
+        <div class="profile-card">
+            <h3>{{ platform | upper }}</h3>
+            {% for key, value in profile.items() %}
+                {% if value and key not in ['extracted_at', 'platform', 'avatar_url', 'icon_url'] %}
+                <p><strong>{{ key | replace('_', ' ') | title }}:</strong> {{ value }}</p>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endfor %}
+        {% if not profiles %}
+        <p>No profile data extracted.</p>
+        {% endif %}
+    </div>
+
+    <!-- SECTION 3: NETWORK GRAPH -->
+    <h2>3. Network Graph Analysis</h2>
+    <div class="section-box">
+        {% if graph_data %}
+        <p><strong>Total Nodes:</strong> {{ graph_data.total_nodes }}</p>
+        <p><strong>Total Edges:</strong> {{ graph_data.total_edges }}</p>
+        <p><strong>Generated At:</strong> {{ graph_data.generated_at }}</p>
+        <h3>Connections</h3>
+        <table>
+            <tr>
+                <th>From</th>
+                <th>To</th>
+                <th>Relation</th>
+            </tr>
+            {% for edge in graph_data.edges[:20] %}
+            <tr>
+                <td>{{ edge.from }}</td>
+                <td>{{ edge.to }}</td>
+                <td>{{ edge.relation }}</td>
+            </tr>
+            {% endfor %}
+            {% if graph_data.edges | length > 20 %}
+            <tr>
+                <td colspan="3">... and {{ graph_data.edges | length - 20 }} more connections</td>
+            </tr>
+            {% endif %}
+        </table>
+        {% else %}
+        <p>No graph data available.</p>
+        {% endif %}
+    </div>
+
+    <!-- SECTION 4: CACHE RECOVERY -->
+    <h2>4. Cache Recovery Findings</h2>
+    {% if cache_data %}
+        {% for platform, data in cache_data.items() %}
+        <h3>{{ platform | upper }}</h3>
+        <div class="section-box">
+
+            <!-- Snapshot History -->
+            {% if data.snapshot_history %}
+            <p><strong>Snapshot History ({{ data.snapshot_history | length }} captures found)</strong></p>
+            <table>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Status</th>
+                    <th>Wayback URL</th>
+                </tr>
+                {% for snap in data.snapshot_history %}
+                <tr>
+                    <td>{{ snap.timestamp }}</td>
+                    <td>{{ snap.statuscode }}</td>
+                    <td><a href="{{ snap.wayback_url }}">View Snapshot</a></td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% endif %}
+
+            <!-- Deleted Content -->
+            {% if data.deleted_content %}
+            <p class="highlight">
+                [!] {{ data.deleted_content | length }} potentially deleted/modified snapshots detected
+            </p>
+            <table>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>HTTP Status</th>
+                    <th>Wayback URL</th>
+                </tr>
+                {% for item in data.deleted_content %}
+                <tr>
+                    <td>{{ item.timestamp }}</td>
+                    <td><span class="badge warning">{{ item.status }}</span></td>
+                    <td><a href="{{ item.wayback_url }}">View</a></td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% else %}
+            <p>No deleted content detected for {{ platform }}</p>
+            {% endif %}
+
+        </div>
+        {% endfor %}
+    {% else %}
+    <p>No cache recovery data available.</p>
+    {% endif %}
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p>Generated by Social Media Forensics & OSINT Investigation Framework</p>
+        <p>Report ID: {{ report_id }} | {{ generated_at }}</p>
+    </div>
+
+</body>
+</html>
